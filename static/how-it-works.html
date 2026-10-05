@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>How It Works | CropCare AI</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+<header class="site-header"><a class="brand" href="index.html"><span class="brand-mark">🌱</span><span>CropCare <b>AI</b></span></a><nav class="desktop-nav"><a href="index.html">Home</a><a href="analyze.html">Analyze</a><a class="active" href="how-it-works.html">How It Works</a><a href="diseases.html">Diseases</a><a href="faq.html">FAQ</a></nav><div class="header-actions"><select id="languageSelect" class="language-select"><option value="en">English</option><option value="mr">मराठी</option><option value="hi">हिन्दी</option></select><button class="menu-btn" id="menuBtn">☰</button></div></header>
+<div class="mobile-menu" id="mobileMenu"><a href="index.html">Home</a><a href="analyze.html">Analyze</a><a href="how-it-works.html">How It Works</a><a href="diseases.html">Diseases</a><a href="faq.html">FAQ</a></div>
+<main>
+<section class="page-hero"><div class="reveal"><span class="section-kicker">HOW IT WORKS</span><h1>From a photo to <span>crop guidance.</span></h1><p>A clear four-stage workflow designed around validation, prediction and understandable advice.</p></div></section>
+<section class="photo-banner reveal"><figure class="wipe"><img src="img/farmer-tablet.jpg" alt="Illustration of a farmer checking crop health on a tablet"></figure><figure class="wipe delay-1"><img src="img/farm-ai.jpg" alt="Illustration of a smart farm with AI"></figure></section>
+<section class="section timeline-section">
+  <div class="timeline-step reveal"><div class="timeline-number">01</div><div><span>UPLOAD</span><h2>Capture or choose a crop image</h2><p>The user uploads a JPEG, PNG or WEBP image. The UI shows a preview before analysis begins.</p></div></div>
+  <div class="timeline-step reveal"><div class="timeline-number">02</div><div><span>GATEKEEPER</span><h2>Check whether the image is suitable</h2><p>A validation layer helps stop unrelated images from being forced into one of the disease classes.</p><div class="flow-pill">Plant / crop image? <b>YES → continue</b> <em>NO → reject</em></div></div></div>
+  <div class="timeline-step reveal"><div class="timeline-number">03</div><div><span>38-CLASS MODEL</span><h2>Run the trained image classifier</h2><p>The validated image is preprocessed and passed to the trained model. The class with the strongest supported prediction is returned with a confidence score.</p></div></div>
+  <div class="timeline-step reveal"><div class="timeline-number">04</div><div><span>ADVISORY</span><h2>Explain the result clearly</h2><p>The predicted class is mapped to crop-specific symptoms, prevention and practical next steps from the advisory knowledge base.</p></div></div>
+</section>
+<section class="section architecture"><div class="section-heading"><span class="section-kicker">SYSTEM FLOW</span><h2>CropCare AI <span>architecture</span></h2></div>
+<div class="architecture-flow"><div>📷<b>Image</b></div><i>→</i><div>🛡️<b>Gatekeeper</b></div><i>→</i><div>🤖<b>38-Class Model</b></div><i>→</i><div>📚<b>Knowledge Base</b></div><i>→</i><div>🌱<b>Guidance</b></div></div></section>
+</main><footer class="footer"><div class="footer-bottom"><span>© 2026 CropCare AI</span><span>Built for a clear AI-assisted farming workflow.</span></div></footer>
+<script src="js/i18n.js"></script><script src="js/app.js"></script></body></html>

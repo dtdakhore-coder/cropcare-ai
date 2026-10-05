@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CropCare AI</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(135deg,#eef8ef,#f7fbf6);color:#17351f;min-height:100vh}
+.container{max-width:900px;margin:auto;padding:30px 18px}header{text-align:center;margin-bottom:28px}
+h1{margin:0 0 8px;font-size:42px}header p{margin:0;color:#55705b;font-size:17px}
+.card{background:#fff;border-radius:22px;padding:28px;box-shadow:0 12px 35px rgba(20,70,35,.12);margin-bottom:20px}
+.upload{display:block;border:2px dashed #6eaa78;border-radius:18px;padding:38px 20px;text-align:center;cursor:pointer;background:#f8fcf8}
+.upload:hover{background:#f0f9f1}.upload strong{display:block;font-size:20px;margin-bottom:8px}input{display:none}
+button{width:100%;margin-top:18px;padding:15px;border:0;border-radius:12px;background:#238b45;color:white;font-size:17px;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}#preview{display:none;width:100%;max-height:360px;object-fit:contain;border-radius:15px;margin-top:20px;background:#f2f5f2}
+#status{margin-top:15px;text-align:center;color:#55705b}#result{display:none}.result-title{font-size:26px;margin-top:0}
+.badge{display:inline-block;padding:7px 12px;border-radius:20px;background:#e7f6ea;color:#23723a;font-weight:bold;margin-bottom:15px}
+.error{background:#fff0f0;color:#a12626;padding:15px;border-radius:12px}pre{white-space:pre-wrap;word-break:break-word;background:#f5f8f5;padding:15px;border-radius:12px;overflow:auto}
+footer{text-align:center;color:#718276;font-size:13px;margin-top:25px}
+</style>
+</head>
+<body>
+<div class="container">
+<header><h1>🌿 CropCare AI</h1><p>AI-assisted crop disease detection and advisory</p></header>
+<div class="card">
+<label class="upload" for="imageInput"><strong>📷 Upload a crop image</strong><span>Click here and select a JPG, JPEG or PNG image</span></label>
+<input id="imageInput" type="file" accept="image/*">
+<img id="preview" alt="Selected crop image">
+<button id="analyzeBtn" disabled>Analyze Image</button>
+<div id="status"></div>
+</div>
+<div class="card" id="result"><h2 class="result-title">Analysis Result</h2><div id="resultContent"></div></div>
+<footer>CropCare AI • 38-class crop disease model • AI-assisted result</footer>
+</div>
+<script>
+const imageInput=document.getElementById("imageInput"),preview=document.getElementById("preview"),analyzeBtn=document.getElementById("analyzeBtn"),statusBox=document.getElementById("status"),resultBox=document.getElementById("result"),resultContent=document.getElementById("resultContent");
+let selectedFile=null;
+imageInput.addEventListener("change",()=>{selectedFile=imageInput.files[0];if(!selectedFile){analyzeBtn.disabled=true;preview.style.display="none";return}preview.src=URL.createObjectURL(selectedFile);preview.style.display="block";analyzeBtn.disabled=false;statusBox.textContent="Image selected. Ready to analyze.";resultBox.style.display="none"});
+analyzeBtn.addEventListener("click",async()=>{if(!selectedFile)return;analyzeBtn.disabled=true;statusBox.textContent="Analyzing image...";const formData=new FormData();formData.append("image",selectedFile);try{const response=await fetch("/predict",{method:"POST",body:formData});const data=await response.json();if(!response.ok||data.ok===false)throw new Error(data.reason||data.message||"Image was rejected.");showResult(data);statusBox.textContent="Analysis completed."}catch(error){resultBox.style.display="block";resultContent.innerHTML='<div class="error"><strong>Unable to analyze this image.</strong><br><br>'+escapeHtml(error.message)+"</div>";statusBox.textContent="Analysis failed."}finally{analyzeBtn.disabled=false}});
+function showResult(data){resultBox.style.display="block";const crop=data.crop||data.crop_name||data.predicted_crop||"",condition=data.condition||data.disease||data.prediction||data.predicted_class||"",confidence=data.confidence!==undefined?data.confidence:"";let html='<div class="badge">✓ Prediction received</div>';if(crop)html+="<p><strong>Crop:</strong> "+escapeHtml(crop)+"</p>";if(condition)html+="<p><strong>Condition:</strong> "+escapeHtml(condition)+"</p>";if(confidence!=="")html+="<p><strong>Confidence:</strong> "+escapeHtml(String(confidence))+"%</p>";if(data.summary)html+="<p><strong>Summary:</strong> "+escapeHtml(data.summary)+"</p>";if(Array.isArray(data.symptoms))html+="<p><strong>Symptoms</strong></p><ul>"+data.symptoms.map(x=>"<li>"+escapeHtml(String(x))+"</li>").join("")+"</ul>";if(Array.isArray(data.advice))html+="<p><strong>Advice</strong></p><ul>"+data.advice.map(x=>"<li>"+escapeHtml(String(x))+"</li>").join("")+"</ul>";if(Array.isArray(data.prevention))html+="<p><strong>Prevention</strong></p><ul>"+data.prevention.map(x=>"<li>"+escapeHtml(String(x))+"</li>").join("")+"</ul>";if(!crop&&!condition&&!data.summary)html+="<pre>"+escapeHtml(JSON.stringify(data,null,2))+"</pre>";resultContent.innerHTML=html}
+function escapeHtml(value){return value.replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]))}
+</script>
+</body>
+</html>

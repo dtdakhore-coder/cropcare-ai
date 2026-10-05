@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="CropCare AI - AI-powered crop health assistant">
+  <title>CropCare AI | Smart Crop Health</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <a class="brand" href="index.html"><span class="brand-mark">🌱</span><span>CropCare <b>AI</b></span></a>
+  <nav class="desktop-nav">
+    <a class="active" href="index.html" data-i18n="nav.home">Home</a>
+    <a href="analyze.html" data-i18n="nav.analyze">Analyze</a>
+    <a href="how-it-works.html" data-i18n="nav.how">How It Works</a>
+    <a href="diseases.html" data-i18n="nav.diseases">Diseases</a>
+    <a href="faq.html" data-i18n="nav.faq">FAQ</a>
+  </nav>
+  <div class="header-actions">
+    <select id="languageSelect" class="language-select" aria-label="Language">
+      <option value="en">English</option><option value="mr">मराठी</option><option value="hi">हिन्दी</option>
+    </select>
+    <a class="btn btn-small btn-primary" href="analyze.html" data-i18n="hero.cta">Analyze Crop</a>
+    <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
+  </div>
+</header>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html">Home</a><a href="analyze.html">Analyze</a><a href="how-it-works.html">How It Works</a>
+  <a href="diseases.html">Diseases</a><a href="faq.html">FAQ</a>
+</div>
+
+<main>
+<section class="hero">
+  <div class="hero-glow glow-one"></div><div class="hero-glow glow-two"></div>
+  <div class="hero-content reveal">
+    <div class="eyebrow"><span class="pulse-dot"></span> AI-POWERED CROP HEALTH ASSISTANT</div>
+    <h1 data-i18n="hero.title">Detect crop problems earlier.<br><span>Protect your crops smarter.</span></h1>
+    <p data-i18n="hero.text">Upload a clear crop-leaf image and get an AI-based prediction with practical, farmer-friendly guidance.</p>
+    <div class="hero-buttons">
+      <a class="btn btn-primary btn-large" href="analyze.html">📷 <span data-i18n="hero.cta">Analyze Crop</span></a>
+      <a class="btn btn-ghost btn-large" href="how-it-works.html">How it works <span>→</span></a>
+    </div>
+    <div class="trust-row">
+      <span>✓ 38-class model</span><span>✓ Image validation</span><span>✓ Regional UI</span>
+    </div>
+  </div>
+  <div class="hero-visual reveal delay-2">
+    <div class="leaf-orbit orbit-a"></div><div class="leaf-orbit orbit-b"></div>
+    <img class="hero-chip chip-a" src="img/farmer-phone.jpg" alt="Farmer photographing a leaf with a phone"><img class="hero-chip chip-b" src="img/farmer-wheat.jpg" alt="Farmer inspecting a leaf in a field">
+    <div class="phone-card">
+      <div class="phone-top"><span>CropCare AI</span><span>●</span></div>
+      <div class="plant-preview"><img src="img/cotton-leaves.jpg" alt="Close-up of crop leaves being checked" class="kenburns"><div class="scan-line"></div></div>
+      <div class="result-mini"><span class="result-icon">✓</span><div><small>Example result</small><strong>Healthy Crop</strong></div><b>94%</b></div>
+    </div>
+  </div>
+</section>
+
+<section class="stats-strip">
+  <div><strong data-count="38">38</strong><span>Supported classes</span></div><div><strong>AI</strong><span>Image analysis</span></div>
+  <div><strong data-count="3" data-suffix="+">3+</strong><span>Languages ready</span></div><div><strong>24/7</strong><span>Digital assistance</span></div>
+</section>
+
+<section class="gallery-band" aria-label="Photos from the field">
+  <div class="marquee"><div class="marquee-track">
+    <img src="img/farm-ai.jpg" alt="Illustration of a smart farm with AI"><img src="img/farmer-phone.jpg" alt="Farmer photographing a leaf"><img src="img/lettuce-rows.jpg" alt="Rows of healthy crops"><img src="img/phone-leaf.jpg" alt="Phone analysing a diseased leaf"><img src="img/farmer-wheat.jpg" alt="Farmer checking a leaf"><img src="img/farmer-tablet.jpg" alt="Illustration of a farmer using a tablet"><img src="img/cotton-leaves.jpg" alt="Cotton leaves">
+    <img src="img/farm-ai.jpg" alt="" aria-hidden="true"><img src="img/farmer-phone.jpg" alt="" aria-hidden="true"><img src="img/lettuce-rows.jpg" alt="" aria-hidden="true"><img src="img/phone-leaf.jpg" alt="" aria-hidden="true"><img src="img/farmer-wheat.jpg" alt="" aria-hidden="true"><img src="img/farmer-tablet.jpg" alt="" aria-hidden="true"><img src="img/cotton-leaves.jpg" alt="" aria-hidden="true">
+  </div></div>
+</section>
+
+<section class="section">
+  <div class="section-heading reveal"><span class="section-kicker">WHY CROPCARE AI</span><h2>Simple technology for <span>real crop decisions.</span></h2><p>Designed to keep the experience clear, fast and useful from the first photo to the final guidance.</p></div>
+  <div class="feature-grid">
+    <article class="feature-card reveal"><div class="feature-icon">🤖</div><h3>AI Disease Detection</h3><p>Analyze supported crop images using a trained image-classification model.</p></article>
+    <article class="feature-card reveal delay-1"><div class="feature-icon">🛡️</div><h3>Smart Image Check</h3><p>Unsuitable or non-plant images can be rejected before disease prediction.</p></article>
+    <article class="feature-card reveal delay-2"><div class="feature-icon">🌐</div><h3>Regional Languages</h3><p>Use a farmer-friendly interface with multilingual labels and guidance.</p></article>
+    <article class="feature-card reveal delay-3"><div class="feature-icon">📱</div><h3>Mobile First</h3><p>Large controls and responsive layouts for phones, tablets and desktops.</p></article>
+  </div>
+</section>
+
+<section class="split-section section">
+  <div class="split-visual reveal"><div class="floating-card card-one">📷 Upload image</div><div class="floating-card card-two">🔎 Validate</div><div class="floating-card card-three">🌱 Get guidance</div><img class="split-photo parallax" src="img/phone-leaf.jpg" alt="A phone analysing a diseased leaf in a field"></div>
+  <div class="split-copy reveal delay-1"><span class="section-kicker">FROM PHOTO TO GUIDANCE</span><h2>One clear workflow.<br><span>Four simple steps.</span></h2>
+    <div class="steps-mini"><div><b>01</b><p><strong>Upload</strong><br>Choose a clear crop image.</p></div><div><b>02</b><p><strong>Check</strong><br>Validate image suitability.</p></div><div><b>03</b><p><strong>Analyze</strong><br>Run the 38-class model.</p></div><div><b>04</b><p><strong>Understand</strong><br>Read symptoms and guidance.</p></div></div>
+    <a class="text-link" href="how-it-works.html">Explore the complete workflow →</a>
+  </div>
+</section>
+
+<section class="cta-section section">
+  <div class="cta-card reveal"><div><span class="section-kicker">READY TO CHECK A CROP?</span><h2>Turn a crop photo into a clearer next step.</h2><p>Start with one good image. CropCare AI handles the rest of the analysis flow.</p></div><a class="btn btn-light btn-large" href="analyze.html">📷 Analyze My Crop</a></div>
+</section>
+</main>
+
+<footer class="footer"><div class="footer-main"><div><a class="brand footer-brand" href="index.html"><span class="brand-mark">🌱</span><span>CropCare <b>AI</b></span></a><p>AI-powered crop health assistance for a smarter farming workflow.</p></div><div><h4>Explore</h4><a href="analyze.html">Analyze Crop</a><a href="diseases.html">Diseases</a><a href="how-it-works.html">How It Works</a></div><div><h4>Help</h4><a href="faq.html">FAQ</a><a href="about.html">About</a><a href="analyze.html">Start Analysis</a></div></div><div class="footer-bottom"><span>© 2026 CropCare AI</span><span>AI results are informational and should be verified when important decisions are involved.</span></div></footer>
+<script src="js/i18n.js"></script><script src="js/app.js"></script>
+</body></html>
