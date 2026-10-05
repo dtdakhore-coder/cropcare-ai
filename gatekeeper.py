@@ -1,285 +1,379 @@
-"""
-CropCare AI - Lightweight Plant Image Gatekeeper
-
-This gatekeeper does NOT load TensorFlow or another AI model.
-It performs a lightweight visual check before the 38-class
-crop disease model runs.
-
-Goal:
-    Reject obvious non-plant images such as cats, dogs, people,
-    indoor objects, blank images, etc.
-
-The disease model is only called after this check passes.
-"""
-
+import os
+import json
 import numpy as np
 from PIL import Image, ImageOps
 
-
-# ============================================================
-# SETTINGS
-# ============================================================
-
-MIN_SIDE = 80
-MIN_PIXEL_STD = 8.0
-
-# Minimum amount of vegetation-like pixels.
-MIN_VEGETATION_RATIO = 0.08
-
-# Very low vegetation is allowed only when there are other
-# plant-like colour characteristics.
-FALLBACK_VEGETATION_RATIO = 0.15
-
-# Reject images dominated by skin-like colours.
-MAX_SKIN_RATIO = 0.30
-
-_loaded = False
+try:
+    from ai_edge_litert.interpreter import Interpreter
+except Exception:
+    Interpreter = None
 
 
-# ============================================================
-# LOAD
-# ============================================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_DIR = os.path.join(BASE_DIR, "model")
+
+GATEKEEPER_MODEL = os.path.join(MODEL_DIR, "gatekeeper.tflite")
+LABELS_FILE = os.path.join(MODEL_DIR, "imagenet_labels.json")
+
+interpreter = None
+input_details = None
+output_details = None
+labels = []
+
+# Objects that should NEVER be accepted as crop/plant images.
+REJECT_WORDS = {
+    "cat",
+    "dog",
+    "person",
+    "man",
+    "woman",
+    "boy",
+    "girl",
+    "human",
+    "car",
+    "truck",
+    "bus",
+    "motorcycle",
+    "bicycle",
+    "airplane",
+    "boat",
+    "bird",
+    "horse",
+    "cow",
+    "sheep",
+    "elephant",
+    "bear",
+    "tiger",
+    "lion",
+    "monkey",
+    "rabbit",
+    "fish",
+    "phone",
+    "laptop",
+    "computer",
+    "keyboard",
+    "mouse",
+    "television",
+    "chair",
+    "table",
+    "bed",
+    "sofa",
+    "couch",
+    "shoe",
+    "bag",
+    "backpack",
+    "bottle",
+    "cup",
+    "clock",
+    "book",
+    "ball",
+    "football",
+    "basketball",
+    "umbrella",
+    "building",
+    "house",
+    "street",
+    "road",
+}
+
+# ImageNet labels that are clearly plant-related.
+PLANT_WORDS = {
+    "plant",
+    "tree",
+    "leaf",
+    "flower",
+    "fruit",
+    "vegetable",
+    "mushroom",
+    "cabbage",
+    "cauliflower",
+    "broccoli",
+    "corn",
+    "maize",
+    "potato",
+    "tomato",
+    "pepper",
+    "bell_pepper",
+    "cucumber",
+    "zucchini",
+    "pumpkin",
+    "orange",
+    "lemon",
+    "banana",
+    "apple",
+    "pineapple",
+    "strawberry",
+    "fig",
+    "pomegranate",
+    "acorn",
+    "coffee",
+    "bean",
+    "pod",
+    "daisy",
+    "sunflower",
+    "rose",
+    "dandelion",
+    "lily",
+    "orchid",
+    "violet",
+    "bouquet",
+    "pot",
+    "garden",
+    "vine",
+    "fungus",
+}
+
 
 def load_gatekeeper():
-    """
-    Lightweight gatekeeper initialization.
+    global interpreter
+    global input_details
+    global output_details
+    global labels
 
-    No TensorFlow model is loaded here.
-    """
-    global _loaded
-    _loaded = True
+    if Interpreter is None:
+        raise RuntimeError(
+            "ai_edge_litert is not installed."
+        )
 
-    print("Lightweight gatekeeper loaded.")
-    return True
+    if not os.path.exists(GATEKEEPER_MODEL):
+        raise FileNotFoundError(
+            f"Gatekeeper model not found: {GATEKEEPER_MODEL}"
+        )
+
+    if not os.path.exists(LABELS_FILE):
+        raise FileNotFoundError(
+            f"Gatekeeper labels not found: {LABELS_FILE}"
+        )
+
+    with open(LABELS_FILE, "r", encoding="utf-8") as f:
+        labels = json.load(f)
+
+    interpreter = Interpreter(
+        model_path=GATEKEEPER_MODEL,
+        num_threads=2,
+    )
+
+    interpreter.allocate_tensors()
+
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+
+    print("TFLite gatekeeper loaded.")
+    print("Gatekeeper model:", GATEKEEPER_MODEL)
+    print("Gatekeeper labels:", len(labels))
+    print("Gatekeeper input:", input_details[0]["shape"])
+    print("Gatekeeper dtype:", input_details[0]["dtype"])
 
 
 def is_loaded():
-    return _loaded
+    return interpreter is not None
 
 
-# ============================================================
-# IMAGE ANALYSIS
-# ============================================================
+def _label_name(index):
+    if index < 0 or index >= len(labels):
+        return ""
 
-def _analyse_image(image):
-    """
-    Calculate simple visual statistics.
-    """
+    item = labels[index]
 
+    if isinstance(item, dict):
+        return str(item.get("name", "")).lower()
+
+    return str(item).lower()
+
+
+def _prepare_image(image):
     image = ImageOps.exif_transpose(image).convert("RGB")
-
-    width, height = image.size
-
-    if width < MIN_SIDE or height < MIN_SIDE:
-        return {
-            "valid": False,
-            "reason": "Image is too small.",
-            "details": {
-                "width": width,
-                "height": height
-            }
-        }
-
-    # Resize for fast processing.
     image = image.resize((224, 224))
 
     arr = np.asarray(image, dtype=np.float32)
 
-    # Overall variation.
-    pixel_std = float(np.std(arr))
+    # MobileNetV2 preprocessing:
+    # 0..255 -> -1..1
+    arr = (arr / 127.5) - 1.0
 
-    if pixel_std < MIN_PIXEL_STD:
-        return {
-            "valid": False,
-            "reason": "Image contains too little visual information.",
-            "details": {
-                "pixel_std": round(pixel_std, 2)
+    arr = np.expand_dims(arr, axis=0)
+
+    return arr
+
+
+def _run_classifier(image):
+    arr = _prepare_image(image)
+
+    detail = input_details[0]
+
+    # Handle model input dtype.
+    if detail["dtype"] != np.float32:
+        scale, zero_point = detail["quantization"]
+
+        if scale and scale > 0:
+            arr = arr / scale + zero_point
+
+        arr = arr.astype(detail["dtype"])
+
+    interpreter.set_tensor(
+        detail["index"],
+        arr,
+    )
+
+    interpreter.invoke()
+
+    output = interpreter.get_tensor(
+        output_details[0]["index"]
+    )
+
+    output = np.asarray(
+        output,
+        dtype=np.float32,
+    ).reshape(-1)
+
+    # Dequantize output if necessary.
+    scale, zero_point = output_details[0]["quantization"]
+
+    if scale and scale > 0:
+        output = (output - zero_point) * scale
+
+    # Convert logits to probabilities if required.
+    if (
+        np.min(output) < 0
+        or np.max(output) > 1.0
+        or abs(float(np.sum(output)) - 1.0) > 0.05
+    ):
+        output = output - np.max(output)
+        exp_output = np.exp(output)
+        output = exp_output / np.sum(exp_output)
+
+    top_indices = np.argsort(output)[::-1][:10]
+
+    results = []
+
+    for index in top_indices:
+        results.append(
+            {
+                "index": int(index),
+                "label": _label_name(int(index)),
+                "confidence": float(output[index]),
             }
-        }
+        )
 
-    r = arr[:, :, 0]
-    g = arr[:, :, 1]
-    b = arr[:, :, 2]
-
-    # --------------------------------------------------------
-    # GREEN / VEGETATION
-    # --------------------------------------------------------
-
-    # Green vegetation generally has G greater than R/B.
-    green_mask = (
-        (g > r * 1.05) &
-        (g > b * 1.05) &
-        (g > 45)
-    )
-
-    green_ratio = float(np.mean(green_mask))
-
-    # --------------------------------------------------------
-    # YELLOW / BROWN PLANT AREAS
-    # --------------------------------------------------------
-
-    yellow_mask = (
-        (r > 70) &
-        (g > 60) &
-        (b < 100) &
-        (r > b * 1.15) &
-        (g > b * 1.05)
-    )
-
-    yellow_ratio = float(np.mean(yellow_mask))
-
-    # Brown/dry leaf-like pixels.
-    brown_mask = (
-        (r > b * 1.25) &
-        (g > b * 1.05) &
-        (r > 55) &
-        (g > 40) &
-        (b < 130)
-    )
-
-    brown_ratio = float(np.mean(brown_mask))
-
-    # --------------------------------------------------------
-    # SKIN-LIKE COLOUR
-    # --------------------------------------------------------
-
-    skin_mask = (
-        (r > 80) &
-        (g > 35) &
-        (b > 20) &
-        (r > g * 1.15) &
-        (r > b * 1.25)
-    )
-
-    skin_ratio = float(np.mean(skin_mask))
-
-    # --------------------------------------------------------
-    # BRIGHT / NEUTRAL AREA
-    # --------------------------------------------------------
-
-    brightness = float(np.mean(arr))
-
-    # Plant-like colour coverage.
-    vegetation_ratio = max(
-        green_ratio,
-        green_ratio + 0.5 * yellow_ratio,
-        green_ratio + 0.4 * brown_ratio
-    )
-
-    # --------------------------------------------------------
-    # DECISION
-    # --------------------------------------------------------
-
-    details = {
-        "width": width,
-        "height": height,
-        "pixel_std": round(pixel_std, 2),
-        "green_ratio": round(green_ratio, 3),
-        "yellow_ratio": round(yellow_ratio, 3),
-        "brown_ratio": round(brown_ratio, 3),
-        "skin_ratio": round(skin_ratio, 3),
-        "vegetation_ratio": round(vegetation_ratio, 3),
-        "brightness": round(brightness, 1),
-    }
-
-    # Strong rejection for obvious skin/person-dominated images.
-    if skin_ratio > MAX_SKIN_RATIO and green_ratio < 0.05:
-        return {
-            "valid": False,
-            "reason": "The image does not appear to contain a crop or plant leaf.",
-            "details": details
-        }
-
-    # Normal plant/leaf case.
-    if green_ratio >= MIN_VEGETATION_RATIO:
-        return {
-            "valid": True,
-            "reason": "Plant-like vegetation detected.",
-            "details": details
-        }
-
-    # Yellow/brown/damaged leaves can contain less green.
-    if vegetation_ratio >= FALLBACK_VEGETATION_RATIO:
-        return {
-            "valid": True,
-            "reason": "Plant-like leaf colours detected.",
-            "details": details
-        }
-
-    # If the image has very little vegetation, reject it.
-    return {
-        "valid": False,
-        "reason": "No sufficient plant or leaf characteristics were detected.",
-        "details": details
-    }
+    return results
 
 
-# ============================================================
-# PUBLIC CHECK
-# ============================================================
+def _contains_word(label, words):
+    label = label.lower().replace("-", "_").replace(" ", "_")
+
+    for word in words:
+        if word in label:
+            return True
+
+    return False
+
 
 def check_image(image):
     """
-    Returns:
+    Check whether an uploaded image looks acceptable
+    for crop-disease analysis.
 
-        {
-            "accepted": True/False,
-            "reason": "...",
-            "details": {...}
-        }
+    Uses MobileNetV2/ImageNet classification rather than
+    simple green-pixel detection.
     """
 
-    if not _loaded:
-        load_gatekeeper()
+    if not is_loaded():
+        return {
+            "accepted": False,
+            "reason": "Gatekeeper model is not loaded.",
+            "details": {},
+        }
 
     try:
-        result = _analyse_image(image)
+        results = _run_classifier(image)
 
+        if not results:
+            return {
+                "accepted": False,
+                "reason": "Unable to classify the image.",
+                "details": {},
+            }
+
+        top = results[0]
+
+        top_label = top["label"]
+        top_conf = top["confidence"]
+
+        # ------------------------------------------------
+        # STRONG NON-PLANT REJECTION
+        # ------------------------------------------------
+
+        for result in results[:10]:
+            label = result["label"]
+            confidence = result["confidence"]
+
+            if _contains_word(label, REJECT_WORDS):
+                if confidence >= 0.10:
+                    return {
+                        "accepted": False,
+                        "reason": "The image does not appear to be a crop or plant.",
+                        "details": {
+                            "detected": label,
+                            "confidence": round(confidence * 100, 2),
+                            "top_predictions": results[:5],
+                        },
+                    }
+
+        # ------------------------------------------------
+        # PLANT DETECTION
+        # ------------------------------------------------
+
+        plant_found = False
+        plant_confidence = 0.0
+
+        for result in results[:10]:
+            label = result["label"]
+
+            if _contains_word(label, PLANT_WORDS):
+                plant_found = True
+                plant_confidence = max(
+                    plant_confidence,
+                    result["confidence"],
+                )
+
+        # If ImageNet strongly sees a non-plant object,
+        # reject it.
+        if top_conf >= 0.35 and not plant_found:
+            return {
+                "accepted": False,
+                "reason": "The image does not appear to contain a crop or plant.",
+                "details": {
+                    "detected": top_label,
+                    "confidence": round(top_conf * 100, 2),
+                    "top_predictions": results[:5],
+                },
+            }
+
+        # Otherwise allow the crop model to perform
+        # the final disease classification.
         return {
-            "accepted": bool(result["valid"]),
-            "reason": result["reason"],
-            "details": result.get("details", {})
+            "accepted": True,
+            "reason": "Image passed the gatekeeper.",
+            "details": {
+                "detected": top_label,
+                "confidence": round(top_conf * 100, 2),
+                "plant_confidence": round(
+                    plant_confidence * 100,
+                    2,
+                ),
+                "top_predictions": results[:5],
+            },
         }
 
     except Exception as e:
         return {
             "accepted": False,
-            "reason": "Unable to analyse the uploaded image.",
-            "details": {
-                "error": str(e)
-            }
+            "reason": f"Gatekeeper error: {str(e)}",
+            "details": {},
         }
 
 
-# ============================================================
-# COMMAND-LINE TEST
-# ============================================================
-
 if __name__ == "__main__":
-
-    import sys
-
-    if len(sys.argv) < 2:
-        print("Usage:")
-        print("python gatekeeper.py path\\to\\image.jpg")
-        sys.exit(1)
-
-    image_path = sys.argv[1]
-
     load_gatekeeper()
 
-    try:
-        image = Image.open(image_path)
-        result = check_image(image)
-
-        print()
-        print("====================================")
-        print("CropCare AI Gatekeeper")
-        print("====================================")
-        print("Accepted:", result["accepted"])
-        print("Reason:", result["reason"])
-        print("Details:", result["details"])
-
-    except Exception as e:
-        print("ERROR:", e)
-        sys.exit(1)
+    print("Gatekeeper ready.")
